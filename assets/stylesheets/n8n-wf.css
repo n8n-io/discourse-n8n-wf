@@ -1,0 +1,33 @@
+.embedded_workflow {
+  padding: 10px;
+  /*background-color: rgb(249, 249, 249);*/
+  background-color: #eee;
+}
+.embedded_workflow img {
+  padding: 0;
+}
+.embedded_workflow .embedded_tip {
+  margin: 10px 0;
+  color: #666;
+  text-align: center;
+  font-size: 0.9em;
+}
+.embedded_workflow .wrapper {
+  position: relative;
+}
+.embedded_workflow .btn {
+  display: inline !important;
+  position: absolute !important;
+  top: 10px !important;
+  right: 10px !important;
+  padding: 10px;
+}
+.embedded_workflow pre {
+  margin: 0;
+}
+.embed_workflow_tip {
+  color: #666;
+  font-size: 0.9em;
+  margin-bottom: 3px;
+}
+
