@@ -4,6 +4,6 @@
 # authors: David Roberts (n8n)
 
 register_asset "stylesheets/n8n-wf.css"
-register_asset "javascripts/initializers/test.js.es6"
+register_asset "javascripts/discourse/initializers/discourse-n8n-wf.js.es6"
 
 register_svg_icon "network-wired" if respond_to?(:register_svg_icon)

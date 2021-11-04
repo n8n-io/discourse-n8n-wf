@@ -43,6 +43,7 @@ export default {
   initialize() {
     withPluginApi('0.12', api => {       
 
+      // Crude hack to get a label next to the workflow icon
       api.registerIconRenderer({
         name: 'n8n-renderer',
      
@@ -50,7 +51,7 @@ export default {
         string(icon, params) {
           const id = escape(handleIconId(icon));
           if(icon.id == 'network-wired') {
-            return `<svg class="${iconClasses(icon, params)} svg-string" aria-hidden="true"><use xlink:href="#${id}"></use></svg>&nbsp;Workflow`;
+            return `<svg class="${iconClasses(icon, params)} svg-string" aria-hidden="true"><use xlink:href="#${id}"></use></svg>&nbsp;n8n workflow`;
           }
           return `<svg class="${iconClasses(icon, params)} svg-string" aria-hidden="true"><use xlink:href="#${id}"></use></svg>`;
         },
@@ -94,24 +95,42 @@ export default {
 
       });
 
+      // Option 1: need to use Composer.reopen rather than api.modifyClass (otherwise action not found), and
+      // but Composer.reopen doesn't have the toolbarEvent
       Composer.reopen({
         actions: {
-          showWfModal: function() {
-            showModal("workflow", { title: "Insert n8n workflow" }).setProperties({
-              composerView: this
-            });
+          showWfModal: function () {
+            console.log(this.toolbarEvent);
+            showModal('discourse-n8n-wf', {title:'Insert n8n workflow'});
           }
         }
-      });      
+      });
 
       api.onToolbarCreate(toolbar => {
         toolbar.addButton({
-          id: 'n8n-wf-button',
+          id: 'discourse-n8n-wf',
           group: 'extras',
           icon: 'network-wired',
-          action: 'showWfModal',
+          action: 'showWfModal2',
           title: 'Insert workflow'
         });
+      });
+
+      // Option 2: Everything works, but button is in a popup menu
+      api.modifyClass("controller:composer", {
+        pluginId: "discourse-n8n-wf",
+        actions: {
+          showWfModal2() {
+            showModal("discourse-n8n-wf").setProperties({"toolbarEvent": this.toolbarEvent});
+          },
+        },
+      });
+      api.addToolbarPopupMenuOptionsCallback(() => {
+        return {
+          action: "showWfModal2",
+          icon: "network-wired",
+          label: "n8n workflow"
+        };
       });
 
       api.decorateCookedElement(
