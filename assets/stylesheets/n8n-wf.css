@@ -1,6 +1,7 @@
 .embedded_workflow {
   padding: 10px;
-  /*background-color: rgb(249, 249, 249);*/
+  margin-top: 15px !important;
+  margin-bottom: 15px;
   background-color: #F1F0F3;
 }
 .embedded_workflow img {

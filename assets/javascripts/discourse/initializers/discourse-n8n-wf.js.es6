@@ -41,12 +41,13 @@ function handleIconId(icon) {
 // The following code is a (failed) attempt to get a button for inserting an n8n workflow
 // on the Discourse composer toolbar
 
-/*
+
 export default {
   name: 'alert',
   initialize() {
     withPluginApi('0.12', api => {       
 
+      /*
       // Crude hack to get a label next to the workflow icon
       api.registerIconRenderer({
         name: 'n8n-renderer',
@@ -174,7 +175,7 @@ export default {
         },
         { id: 'n8n_workflow' }
       );
+      */
     });
   }
 };
-*/

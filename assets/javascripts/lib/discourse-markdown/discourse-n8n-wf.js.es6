@@ -44,9 +44,9 @@ function workflowCode(json, preContent) {
                 //`Interactive version` +
              //`</div>` +
            //`</div>` +
-           `<div class="embedded_tip">💡 Double-click a node to see its settings, and paste the <a href="#" onclick="toggleCodeVisibility(this);return false">workflow code</a> into n8n to import it</div>` +
+           `<div class="embedded_tip">💡 Double-click a node to see its settings, and paste <a href="#" onclick="toggleCodeVisibility(this);return false">this workflow's code</a> into n8n to import it</div>` +
            `<div class="wrapper" id="code" style="display:none">` +
-             `<div class="btn" onclick="navigator.clipboard.writeText(decodeURIComponent('${encoded}'))">Copy</div>` +
+             `<div class="btn" onclick="navigator.clipboard.writeText(decodeURIComponent('${encoded}'));this.innerText = 'Copied'">Copy</div>` +
              preContent +
            '</div>' +
          '</div>'
@@ -76,10 +76,10 @@ function isBlockStartMarker(state, start, max, md) {
 }
 
 function blockJSON(state, startLine, endLine, silent) {
-  console.log('checking');
-  console.log(state);
-  console.log(startLine);
-  console.log(endLine);
+  //console.log('checking');
+  //console.log(state);
+  //console.log(startLine);
+  //console.log(endLine);
 
   if (silent) {
     return true;
@@ -152,9 +152,7 @@ function blockJSON(state, startLine, endLine, silent) {
   }
 
   // Move the pointer on
-  console.log('line was ' + state.line);
   state.line = lastLine + 2;
-  console.log('line is now ' + state.line);
 
   return true;
 }
