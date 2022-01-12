@@ -28,9 +28,25 @@ function workflowCode(json, preContent) {
   console.log(escaped);
 
   return '<div class="embedded_workflow">' +
-           `<img src="" data-workflow="${encoded}"></img>` +
-           `<div class="embedded_tip">💡 Try out this workflow! <a href="#" onclick="navigator.clipboard.writeText(decodeURI('${encoded}'));return false">Copy</a> and paste its code into n8n</div>` +
-           `<div class="wrapper">` +
+           `<iframe src="https://n8n-test3.herokuapp.com/workflow" id="int_iframe" style="width:100%;border:0;display:block" onload="prepareWorkflow(decodeURI('${encoded}'))"></iframe>` +
+           //`<div style="position:relative" onmouseover="document.getElementById('int_btn').style.setProperty('display', 'block', 'important');" onmouseout="document.getElementById('int_btn').style.setProperty('display', 'none', 'important');">` +
+             //`<img src="" data-workflow="${encoded}"></img>` +
+             //`<img src="/plugins/n8n-workflow-renderer/images/dummy_workflow.png" id="screenshot"></img>` +
+             //`<div style="position:absolute;top:0;left:0;bottom:0;right:0;margin:auto">` +
+             //`<div id="int_btn" class="btn" ` +
+                //`style="display:none !important;position:absolute !important;top:50% !important;left:50%;transform:translate(-50%,-50%)" ` +
+                //`onclick="` +
+                    //`loadWorkflow(decodeURI('${encoded}'));` +
+                    //`document.getElementById('int_iframe').style.setProperty('display', 'block', 'important');` +
+                    //`document.getElementById('screenshot').style.setProperty('display', 'none', 'important');` +
+                //`">` +
+               ////`<div style="min-height: 100px;display: inline-flex;align-items: center;border: 1px solid aqua;">Yeah</div>` +
+                //`<svg class="fa d-icon d-icon-cog svg-icon svg-string" />` +
+                //`Interactive version` +
+             //`</div>` +
+           //`</div>` +
+           `<div class="embedded_tip">💡 Tip: try out this workflow on your n8n, by pasting its <a href="#" onclick="document.getElementById('code').style.setProperty('display', 'block', 'important');">code</a> into the editor</div>` +
+           `<div class="wrapper" id="code" style="display:none">` +
              `<div class="btn" onclick="navigator.clipboard.writeText(decodeURI('${encoded}'))">Copy</div>` +
              preContent +
            '</div>' +
