@@ -76,40 +76,70 @@ function isBlockStartMarker(state, start, max, md) {
 }
 
 function blockJSON(state, startLine, endLine, silent) {
-  let start = state.bMarks[startLine] + state.tShift[startLine],
-    max = state.eMarks[startLine];
-
-  let markerCode = isBlockStartMarker(state, start, max, state.md);
-  if(markerCode == null) return false;
+  console.log('checking');
+  console.log(state);
+  console.log(startLine);
+  console.log(endLine);
 
   if (silent) {
     return true;
   }
 
-  let lastLine = endLine+1;
+  let firstLine = startLine;
+  let lastLine = endLine;
   let closed = false;
-  var content;
-  for (;;) {
-    lastLine--;
+  var content = null;
 
-    // If we get to the start line then we consider it as no match
-    if (lastLine <= startLine) {
-      return false;
+  // Check for valid JSON content between first and last lines
+  // If we don't find it, gradually bring the last line up
+  // If we still don't find it, move the first line down and start again
+  while (firstLine < lastLine && content == null) {
+
+    let start = state.bMarks[firstLine] + state.tShift[firstLine]
+    let max = state.eMarks[firstLine];
+    let markerCode = isBlockStartMarker(state, start, max, state.md);
+    lastLine = endLine;
+
+    if(markerCode != null) {
+      while (lastLine > firstLine && content == null) {
+        console.log('checking ' + firstLine + ' -> ' + lastLine)
+
+        // Is the content valid JSON?
+        let endContent = state.eMarks[lastLine];
+        content = state.src.slice(
+          state.bMarks[firstLine] + state.tShift[firstLine],
+          endContent
+        );
+
+        content = getJSON(content);
+        //if(content != null) {
+          //break;
+        //}
+
+        lastLine--;
+      }
     }
 
-    // Is the content valid JSON?
-    let endContent = state.eMarks[lastLine];
-    content = state.src.slice(
-      state.bMarks[startLine] + state.tShift[startLine],
-      endContent
-    );
-
-    content = getJSON(content);
-    if(content != null) {
-      break;
-    }
+    firstLine++;
   }
 
+  // If we got no content then there's no match
+  if (content == null) {
+    return false;
+  }
+
+  // If we had to skip some content before coming to some JSON,
+  // include it in the beginning
+  let skippedContent = state.src.slice(
+    state.bMarks[startLine] + state.tShift[startLine],
+    state.eMarks[firstLine-2]
+  );
+  let skippedToken = state.push("inline", "", 0);
+  skippedToken.content = skippedContent;
+  skippedToken.map      = [ startLine, firstLine-2 ];
+  skippedToken.children = [];
+
+  // Add the JSON token
   let token = state.push("html_raw", "", 0);
 
   const escaped = state.md.utils.escapeHtml(JSON.stringify(content, null, 2));
@@ -121,7 +151,10 @@ function blockJSON(state, startLine, endLine, silent) {
     token.content = preContent;
   }
 
-  state.line = lastLine + 1;
+  // Move the pointer on
+  console.log('line was ' + state.line);
+  state.line = lastLine + 2;
+  console.log('line is now ' + state.line);
 
   return true;
 }
