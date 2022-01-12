@@ -23,12 +23,11 @@ function isWorkflow(json) {
 
 function workflowCode(json, preContent) {
 
-  let encoded = encodeURI(JSON.stringify(json));
-  let escaped = JSON.stringify(json).replaceAll('"', '\\"');
-  console.log(escaped);
+  let encoded = encodeURIComponent(JSON.stringify(json)).replaceAll("'", '%27');
 
   return '<div class="embedded_workflow">' +
-           `<iframe src="https://n8n-test3.herokuapp.com/workflow" id="int_iframe" style="width:100%;border:0;display:block" onload="prepareWorkflow(decodeURI('${encoded}'))"></iframe>` +
+           //`<iframe src="https://n8n-test3.herokuapp.com/workflow" id="int_iframe" style="width:100%;border:0;display:block" onload="prepareWorkflow(decodeURI('${encoded}'))"></iframe>` +
+           `<iframe src="https://n8n-test3.herokuapp.com/workflow?workflow=${encoded}" id="int_iframe" width="100%" height="300" style="width:100%;border:0;display:block" onload="prepareWorkflow(this)"></iframe>` +
            //`<div style="position:relative" onmouseover="document.getElementById('int_btn').style.setProperty('display', 'block', 'important');" onmouseout="document.getElementById('int_btn').style.setProperty('display', 'none', 'important');">` +
              //`<img src="" data-workflow="${encoded}"></img>` +
              //`<img src="/plugins/n8n-workflow-renderer/images/dummy_workflow.png" id="screenshot"></img>` +
@@ -45,9 +44,9 @@ function workflowCode(json, preContent) {
                 //`Interactive version` +
              //`</div>` +
            //`</div>` +
-           `<div class="embedded_tip">💡 Tip: try out this workflow on your n8n, by pasting its <a href="#" onclick="document.getElementById('code').style.setProperty('display', 'block', 'important');">code</a> into the editor</div>` +
+           `<div class="embedded_tip">💡 Double-click a node to see its settings, and paste the <a href="#" onclick="toggleCodeVisibility(this);return false">workflow code</a> into n8n to import it</div>` +
            `<div class="wrapper" id="code" style="display:none">` +
-             `<div class="btn" onclick="navigator.clipboard.writeText(decodeURI('${encoded}'))">Copy</div>` +
+             `<div class="btn" onclick="navigator.clipboard.writeText(decodeURIComponent('${encoded}'))">Copy</div>` +
              preContent +
            '</div>' +
          '</div>'
@@ -87,19 +86,19 @@ function blockJSON(state, startLine, endLine, silent) {
     return true;
   }
 
-  let nextLine = endLine+1;
+  let lastLine = endLine+1;
   let closed = false;
   var content;
   for (;;) {
-    nextLine--;
+    lastLine--;
 
     // If we get to the start line then we consider it as no match
-    if (nextLine <= startLine) {
+    if (lastLine <= startLine) {
       return false;
     }
 
     // Is the content valid JSON?
-    let endContent = state.eMarks[nextLine];
+    let endContent = state.eMarks[lastLine];
     content = state.src.slice(
       state.bMarks[startLine] + state.tShift[startLine],
       endContent
@@ -122,7 +121,7 @@ function blockJSON(state, startLine, endLine, silent) {
     token.content = preContent;
   }
 
-  state.line = nextLine + 1;
+  state.line = lastLine + 1;
 
   return true;
 }

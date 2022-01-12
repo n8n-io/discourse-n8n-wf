@@ -38,6 +38,10 @@ function handleIconId(icon) {
   return id;
 }
 
+// The following code is a (failed) attempt to get a button for inserting an n8n workflow
+// on the Discourse composer toolbar
+
+/*
 export default {
   name: 'alert',
   initialize() {
@@ -173,3 +177,4 @@ export default {
     });
   }
 };
+*/

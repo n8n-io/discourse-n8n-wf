@@ -1,10 +1,13 @@
 .embedded_workflow {
   padding: 10px;
   /*background-color: rgb(249, 249, 249);*/
-  background-color: #eee;
+  background-color: #F1F0F3;
 }
 .embedded_workflow img {
   padding: 0;
+}
+.embedded_workflow code {
+  background-color: #F1F0F3;
 }
 .embedded_workflow .embedded_tip {
   margin-top: 10px;
@@ -22,6 +25,7 @@
   top: 10px !important;
   right: 10px !important;
   padding: 10px;
+  background-color: #FDFCFF;
 }
 .embedded_workflow pre {
   margin: 0;
