@@ -34,6 +34,4 @@ cd discourse/plugins
 git clone <this repository>
 ```
 
-# Discourse settings
-
-You need to whitelist the domain your iframes are calling in the admin settings of Discourse
+Make sure you also whitelist the domain your iframes are calling in the admin settings of Discourse.
