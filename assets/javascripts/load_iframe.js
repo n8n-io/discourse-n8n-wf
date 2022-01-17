@@ -2,8 +2,9 @@
   var s = { insideIframe: false } 
 
   var toggleCodeVisibility = (src, hide) => {
+    alert('called');
     //console.log(src.parentElement.parentElement)
-    var elem = src.parentElement.parentElement.querySelector('#code');
+    var elem = src.parentElement.parentElement.querySelector('.wrapper');
     //var elem = src.parentElement.parentElement.getElementById('code');
     console.log(elem)
     var value = (hide) ? 'none' : 'block';
@@ -44,6 +45,7 @@
 	//};
 
   var prepareWorkflow = (elem) => {
+    alert('called');
     var callback = ({ data, source }) => {
 
       // Check this is an event for the correct iframe
