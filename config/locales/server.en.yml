@@ -1,0 +1,3 @@
+en:
+  site_settings:
+    n8n-core-url: "base url for n8n instance?"

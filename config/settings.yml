@@ -1,0 +1,4 @@
+plugins:
+  n8n-core-url:
+    default: "http://localhost:5678"
+    client: true
