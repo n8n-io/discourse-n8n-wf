@@ -124,6 +124,6 @@ function fence(state, startLine, endLine, silent) {
 export function setup(helper) {
   if (!helper.markdownIt) return;
   helper.registerPlugin((md) => {
-    md.block.ruler.at('fence', fence);
+    md.block.ruler.before('fence', 'workflow', fence);
   });
 }
