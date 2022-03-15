@@ -13,8 +13,9 @@ function isWorkflow(json) {
 }
 
 function workflowCode(json) {
+  console.log(json);
   return `<div class="workflow_preview">
-            <n8n-demo workflow='${JSON.stringify(json)}' frame=true></n8n-demo>
+            <n8n-demo workflow='${encodeURIComponent(JSON.stringify(json)).replaceAll("'", '%27')}' frame=true ></n8n-demo>
           </div>`
 }
 
@@ -103,7 +104,6 @@ function fence(state, startLine, endLine, silent) {
 
   state.line = nextLine + (haveEndMarker ? 1 : 0);
   let json = getJSON(state.getLines(startLine + 1, nextLine, len, true));
-
   if(isWorkflow(json)) {
     token         = state.push("html_raw", "", 0);
     token.content = workflowCode(json);
