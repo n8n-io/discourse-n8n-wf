@@ -1,19 +1,10 @@
-
-// TODO: When putting a workflow inside a fence (```), it's rendered properly in the
-// preview, but not in the cooked post
-
-let defaultFenceRenderer = null;
-
 function getJSON(content) {
-  //console.log('testing ' + content);
   let parsed;
   try {
     parsed = JSON.parse(content);
   } catch(e) {
     return null;
   }
-
-  //console.log('Valid!');
   return parsed;
 }
 
@@ -21,404 +12,118 @@ function isWorkflow(json) {
   return json && json['nodes'] && Array.isArray(json['nodes']) && json['nodes'][0]['type'];
 }
 
-/* // Old version
-function workflowCode(json, preContent) {
-
-  let encoded = encodeURIComponent(JSON.stringify(json)).replaceAll("'", '%27');
-  return '<div>hello.</div>'
-
-  return '<div class="embedded_workflow">' +
-           //`<iframe src="https://n8n-test3.herokuapp.com/workflow" id="int_iframe" style="width:100%;border:0;display:block" onload="prepareWorkflow(decodeURI('${encoded}'))"></iframe>` +
-           `<iframe class="embedded_workflow_iframe" src="https://n8n-test3.herokuapp.com/workflow?workflow=${encoded}" id="int_iframe" width="100%" height="300" style="width:100%;border:0;display:block" onload="prepareWorkflow(this)"></iframe>` +
-           //`<div style="position:relative" onmouseover="document.getElementById('int_btn').style.setProperty('display', 'block', 'important');" onmouseout="document.getElementById('int_btn').style.setProperty('display', 'none', 'important');">` +
-             //`<img src="" data-workflow="${encoded}"></img>` +
-             //`<img src="/plugins/n8n-workflow-renderer/images/dummy_workflow.png" id="screenshot"></img>` +
-             //`<div style="position:absolute;top:0;left:0;bottom:0;right:0;margin:auto">` +
-             //`<div id="int_btn" class="btn" ` +
-                //`style="display:none !important;position:absolute !important;top:50% !important;left:50%;transform:translate(-50%,-50%)" ` +
-                //`onclick="` +
-                    //`loadWorkflow(decodeURI('${encoded}'));` +
-                    //`document.getElementById('int_iframe').style.setProperty('display', 'block', 'important');` +
-                    //`document.getElementById('screenshot').style.setProperty('display', 'none', 'important');` +
-                //`">` +
-               ////`<div style="min-height: 100px;display: inline-flex;align-items: center;border: 1px solid aqua;">Yeah</div>` +
-                //`<svg class="fa d-icon d-icon-cog svg-icon svg-string" />` +
-                //`Interactive version` +
-             //`</div>` +
-           //`</div>` +
-           `<div class="embedded_tip">💡 Double-click a node to see its settings, or paste <a href="#" onclick="alert('here');toggleCodeVisibility(this);return false">this workflow's code</a> into n8n to import it</div>` +
-           `<div class="wrapper" thing="me" id="code" style="display:none">` +
-             `<div class="btn" onclick="navigator.clipboard.writeText(decodeURIComponent('${encoded}'));this.innerText = 'Copied'">Copy</div>` +
-             preContent +
-           '</div>' +
-         '</div>'
-}*/
-function workflowCode(json, preContent) {
-
-  let encoded = encodeURIComponent(JSON.stringify(json)).replaceAll("'", '%27');
-  //return '<div>hello.</div>'
-
-  // TODO: This code relies on onclick and onload attributes, which can be blocked by Discourse's content security policy
-  return '<div class="embedded_workflow">' +
-           //`<iframe src="https://n8n-test3.herokuapp.com/workflow" id="int_iframe" style="width:100%;border:0;display:block" onload="prepareWorkflow(decodeURI('${encoded}'))"></iframe>` +
-           `<iframe class="embedded_workflow_iframe" src="https://n8n-test3.herokuapp.com/workflow?workflow=${encoded}" id="int_iframe" width="100%" height="300" style="width:100%;border:0;display:block" onload="prepareWorkflow(this)"></iframe>` +
-           `<div class="embedded_tip">💡 Double-click a node to see its settings, or paste <a href="#" onclick="alert('here');toggleCodeVisibility(this);return false">this workflow's code</a> into n8n to import it</div>` +
-           `<div class="wrapper" thing="me" id="code" style="display:none">` +
-             `<div class="btn" onclick="navigator.clipboard.writeText(decodeURIComponent('${encoded}'));this.innerText = 'Copied'">Copy</div>` +
-             preContent +
-           '</div>' +
-         '</div>'
+function workflowCode(json) {
+  console.log(json);
+  return `<div class="workflow_preview">
+            <n8n-demo workflow='${encodeURIComponent(JSON.stringify(json)).replaceAll("'", '%27')}' frame=true ></n8n-demo>
+          </div>`
 }
 
-function isBlockStartMarker(state, start, max, md) {
-  let startMarkers = [91, 123]; // [ and {
-  let markerCode = null
+function fence(state, startLine, endLine, silent) {
+  var marker, len, params, nextLine, mem, token, markup,
+      haveEndMarker = false,
+      pos = state.bMarks[startLine] + state.tShift[startLine],
+      max = state.eMarks[startLine];
 
-  if (startMarkers.includes(state.src.charCodeAt(start))) {
-    markerCode = state.src.charCodeAt(start);
-  } else {
-    return null;
-  }
+  // if it's indented more than 3 spaces, it should be a code block
+  if (state.sCount[startLine] - state.blkIndent >= 4) { return false; }
 
-  start++;
+  if (pos + 3 > max) { return false; }
 
-  // ensure we only have newlines after our [ or {
-  for (let i = start; i < max; i++) {
-    if (!md.utils.isSpace(state.src.charCodeAt(i))) {
-      return null;
-    }
-  }
+  marker = state.src.charCodeAt(pos);
 
-  return markerCode;
-}
-
-function blockJSON(state, startLine, endLine, silent) {
-  //console.log('checking');
-  //console.log(state);
-  //console.log(startLine);
-  //console.log(endLine);
-
-  if (silent) {
-    return true;
-  }
-
-  let firstLine = startLine;
-  let lastLine = endLine;
-  let closed = false;
-  var content = null;
-
-  // Check for valid JSON content between first and last lines
-  // If we don't find it, gradually bring the last line up
-  // If we still don't find it, move the first line down and start again
-  while (firstLine < lastLine && content == null) {
-
-    let start = state.bMarks[firstLine] + state.tShift[firstLine]
-    let max = state.eMarks[firstLine];
-    let markerCode = isBlockStartMarker(state, start, max, state.md);
-    lastLine = endLine;
-
-    if(markerCode != null) {
-      while (lastLine > firstLine && content == null) {
-        console.log('checking ' + firstLine + ' -> ' + lastLine)
-
-        // Is the content valid JSON?
-        let endContent = state.eMarks[lastLine];
-        content = state.src.slice(
-          state.bMarks[firstLine] + state.tShift[firstLine],
-          endContent
-        );
-
-        content = getJSON(content);
-        //if(content != null) {
-          //break;
-        //}
-
-        lastLine--;
-      }
-    }
-
-    firstLine++;
-  }
-
-  // If we got no content then there's no match
-  if (content == null) {
+  if (marker !== 0x7E/* ~ */ && marker !== 0x60 /* ` */) {
     return false;
   }
 
-  // If we had to skip some content before coming to some JSON,
-  // include it in the beginning
-  if(firstLine != startLine) {
-    let skippedContent = state.src.slice(
-      state.bMarks[startLine] + state.tShift[startLine],
-      state.eMarks[firstLine-2]
-    );
-    let skippedToken = state.push("inline", "", 0);
-    skippedToken.content = skippedContent;
-    skippedToken.map      = [ startLine, firstLine-2 ];
-    skippedToken.children = [];
-    //state.line = firstLine - 1;
-    //return true
+  // scan marker length
+  mem = pos;
+  pos = state.skipChars(pos, marker);
+
+  len = pos - mem;
+
+  if (len < 3) { return false; }
+
+  markup = state.src.slice(mem, pos);
+  params = state.src.slice(pos, max);
+
+  if (marker === 0x60 /* ` */) {
+    if (params.indexOf(String.fromCharCode(marker)) >= 0) {
+      return false;
+    }
   }
 
-  // Add the JSON token
-  let token = state.push("html_raw", "", 0);
-  console.log(state)
+  // Since start is found, we can report success here in validation mode
+  if (silent) { return true; }
 
-  const escaped = state.md.utils.escapeHtml(JSON.stringify(content, null, 2));
-  const preContent = `<pre><code class="hljs json">${escaped}</code></pre>\n`;
+  // search end of block
+  nextLine = startLine;
 
-  if(isWorkflow(content)) {
-    token.content = workflowCode(content, preContent);
-  } else {
-    token.content = preContent;
+  for (;;) {
+    nextLine++;
+    if (nextLine >= endLine) {
+      // unclosed block should be autoclosed by end of document.
+      // also block seems to be autoclosed by end of parent
+      break;
+    }
+
+    pos = mem = state.bMarks[nextLine] + state.tShift[nextLine];
+    max = state.eMarks[nextLine];
+
+    if (pos < max && state.sCount[nextLine] < state.blkIndent) {
+      // non-empty line with negative indent should stop the list:
+      // - ```
+      //  test
+      break;
+    }
+
+    if (state.src.charCodeAt(pos) !== marker) { continue; }
+
+    if (state.sCount[nextLine] - state.blkIndent >= 4) {
+      // closing fence should be indented less than 4 spaces
+      continue;
+    }
+
+    pos = state.skipChars(pos, marker);
+
+    // closing code fence must be at least as long as the opening one
+    if (pos - mem < len) { continue; }
+
+    // make sure tail has spaces only
+    pos = state.skipSpaces(pos);
+
+    if (pos < max) { continue; }
+
+    haveEndMarker = true;
+    // found!
+    break;
   }
-  token.map = [firstLine, lastLine];
 
-  // Move the pointer on
-  state.line = lastLine + 2;
+  // If a fence has heading spaces, they should be removed from its inner block
+  len = state.sCount[startLine];
+
+  state.line = nextLine + (haveEndMarker ? 1 : 0);
+  let json = getJSON(state.getLines(startLine + 1, nextLine, len, true));
+  if(isWorkflow(json)) {
+    token         = state.push("html_raw", "", 0);
+    token.content = workflowCode(json);
+    token.markup  = "";
+    token.map     = [ startLine, state.line ];
+    return true
+  }
+
+  token         = state.push('fence', 'code', 0);
+  token.info    = params;
+  token.content = state.getLines(startLine + 1, nextLine, len, true);
+  token.markup  = markup;
+  token.map     = [ startLine, state.line ];
 
   return true;
-}
-
-function fenceRenderer(tokens, idx, options, env, slf) {
-
-  let content = tokens[idx].content;
-  let json = getJSON(content);
-
-  if(isWorkflow(json)) {
-    return workflowCode(json, defaultFenceRenderer(tokens, idx, options, env, self));
-  }
-
-  return defaultFenceRenderer(tokens, idx, options, env, self);
-
 };
 
 export function setup(helper) {
   if (!helper.markdownIt) return;
-
-  // Need to work around Discourse's sanitizer. With the settings below it allows onclick and onload, but they don't seem
-  // to be executed for some reason (at least in the preview window)
-  // https://github.com/discourse/discourse/blob/148ee1d1627cda7d65a028bf43f548e1b3efed6a/app/assets/javascripts/pretty-text/addon/allow-lister.js
-  //helper.allowList(['div.embedded_workflow', 'div.embedded_tip', 'div.wrapper', 'div[style]', 'a[onclick]', 'iframe[onload]', 'iframe[style]', 'div.btn', 'code.hljs', 'code.json']);
-  helper.allowList(['div.embedded_workflow', 'div.embedded_tip']);
-
   helper.registerPlugin((md) => {
-
-    defaultFenceRenderer = md.renderer.rules.fence || function(tokens, idx, options, env, self) {
-				return self.renderToken(tokens, idx, options, env, self);
-    };
-
-    // This adds a new rule for JSON blocks, to detect them even when they're not fenced
-    // It doesn't seem to be rendering properly on the backend (once you cook the past on publishing it)
-    // It also messes up the rendering of all the other markdown on the page
-    md.block.ruler.after("code", "json", blockJSON);
-    // Investigate this:
-    // https://github.com/markdown-it/markdown-it/blob/master/lib/parser_block.js
-    console.log(md.block.ruler.getRules(''));
-
-    // This way will render fenced JSON using isWorkflow(), but is subject to Discourse's sanitizer
-    // onlaod and onclick attributes are loaded after being whitelisted above. but they don't seem to actually be executed
-    // It doesn't seem to be rendering properly on the backend (once you cook the past on publishing it)
-    //md.renderer.rules.fence = fenceRenderer;
-
-    // If you comment out the first one and only have the second one, the post doesn't cook properly
+    md.block.ruler.before('fence', 'workflow', fence);
   });
-
 }
-
-
-
-
-// Old version that works when cooked
-/*
-
-// TODO: When putting a workflow inside a fence (```), it's rendered properly in the
-// preview, but not in the cooked post
-
-let defaultFenceRenderer = null;
-
-function getJSON(content) {
-  //console.log('testing ' + content);
-  let parsed;
-  try {
-    parsed = JSON.parse(content);
-  } catch(e) {
-    return null;
-  }
-
-  //console.log('Valid!');
-  return parsed;
-}
-
-function isWorkflow(json) {
-  return json && json['nodes'] && Array.isArray(json['nodes']) && json['nodes'][0]['type'];
-}
-
-function workflowCode(json, preContent) {
-
-  let encoded = encodeURIComponent(JSON.stringify(json)).replaceAll("'", '%27');
-
-  return '<div class="embedded_workflow">' +
-           //`<iframe src="https://n8n-test3.herokuapp.com/workflow" id="int_iframe" style="width:100%;border:0;display:block" onload="prepareWorkflow(decodeURI('${encoded}'))"></iframe>` +
-           `<iframe src="https://n8n-test3.herokuapp.com/workflow?workflow=${encoded}" id="int_iframe" width="100%" height="300" style="width:100%;border:0;display:block" onload="prepareWorkflow(this)"></iframe>` +
-           //`<div style="position:relative" onmouseover="document.getElementById('int_btn').style.setProperty('display', 'block', 'important');" onmouseout="document.getElementById('int_btn').style.setProperty('display', 'none', 'important');">` +
-             //`<img src="" data-workflow="${encoded}"></img>` +
-             //`<img src="/plugins/n8n-workflow-renderer/images/dummy_workflow.png" id="screenshot"></img>` +
-             //`<div style="position:absolute;top:0;left:0;bottom:0;right:0;margin:auto">` +
-             //`<div id="int_btn" class="btn" ` +
-                //`style="display:none !important;position:absolute !important;top:50% !important;left:50%;transform:translate(-50%,-50%)" ` +
-                //`onclick="` +
-                    //`loadWorkflow(decodeURI('${encoded}'));` +
-                    //`document.getElementById('int_iframe').style.setProperty('display', 'block', 'important');` +
-                    //`document.getElementById('screenshot').style.setProperty('display', 'none', 'important');` +
-                //`">` +
-               ////`<div style="min-height: 100px;display: inline-flex;align-items: center;border: 1px solid aqua;">Yeah</div>` +
-                //`<svg class="fa d-icon d-icon-cog svg-icon svg-string" />` +
-                //`Interactive version` +
-             //`</div>` +
-           //`</div>` +
-           `<div class="embedded_tip">💡 Double-click a node to see its settings, or paste <a href="#" onclick="toggleCodeVisibility(this);return false">this workflow's code</a> into n8n to import it</div>` +
-           `<div class="wrapper" id="code" style="display:none">` +
-             `<div class="btn" onclick="navigator.clipboard.writeText(decodeURIComponent('${encoded}'));this.innerText = 'Copied'">Copy</div>` +
-             preContent +
-           '</div>' +
-         '</div>'
-
-}
-
-function isBlockStartMarker(state, start, max, md) {
-  let startMarkers = [91, 123]; // [ and {
-  let markerCode = null
-
-  if (startMarkers.includes(state.src.charCodeAt(start))) {
-    markerCode = state.src.charCodeAt(start);
-  } else {
-    return null;
-  }
-
-  start++;
-
-  // ensure we only have newlines after our [ or {
-  for (let i = start; i < max; i++) {
-    if (!md.utils.isSpace(state.src.charCodeAt(i))) {
-      return null;
-    }
-  }
-
-  return markerCode;
-}
-
-function blockJSON(state, startLine, endLine, silent) {
-  //console.log('checking');
-  //console.log(state);
-  //console.log(startLine);
-  //console.log(endLine);
-
-  if (silent) {
-    return true;
-  }
-
-  let firstLine = startLine;
-  let lastLine = endLine;
-  let closed = false;
-  var content = null;
-
-  // Check for valid JSON content between first and last lines
-  // If we don't find it, gradually bring the last line up
-  // If we still don't find it, move the first line down and start again
-  while (firstLine < lastLine && content == null) {
-
-    let start = state.bMarks[firstLine] + state.tShift[firstLine]
-    let max = state.eMarks[firstLine];
-    let markerCode = isBlockStartMarker(state, start, max, state.md);
-    lastLine = endLine;
-
-    if(markerCode != null) {
-      while (lastLine > firstLine && content == null) {
-        console.log('checking ' + firstLine + ' -> ' + lastLine)
-
-        // Is the content valid JSON?
-        let endContent = state.eMarks[lastLine];
-        content = state.src.slice(
-          state.bMarks[firstLine] + state.tShift[firstLine],
-          endContent
-        );
-
-        content = getJSON(content);
-        //if(content != null) {
-          //break;
-        //}
-
-        lastLine--;
-      }
-    }
-
-    firstLine++;
-  }
-
-  // If we got no content then there's no match
-  if (content == null) {
-    return false;
-  }
-
-  // If we had to skip some content before coming to some JSON,
-  // include it in the beginning
-  let skippedContent = state.src.slice(
-    state.bMarks[startLine] + state.tShift[startLine],
-    state.eMarks[firstLine-2]
-  );
-  let skippedToken = state.push("inline", "", 0);
-  skippedToken.content = skippedContent;
-  skippedToken.map      = [ startLine, firstLine-2 ];
-  skippedToken.children = [];
-
-  // Add the JSON token
-  let token = state.push("html_raw", "", 0);
-
-  const escaped = state.md.utils.escapeHtml(JSON.stringify(content, null, 2));
-  const preContent = `<pre><code class="hljs json">${escaped}</code></pre>\n`;
-
-  if(isWorkflow(content)) {
-    token.content = workflowCode(content, preContent);
-  } else {
-    token.content = preContent;
-  }
-
-  // Move the pointer on
-  state.line = lastLine + 2;
-
-  return true;
-}
-
-function fenceRenderer(tokens, idx, options, env, slf) {
-
-  let content = tokens[idx].content;
-  let json = getJSON(content);
-
-  if(isWorkflow(json)) {
-    return workflowCode(json, defaultFenceRenderer(tokens, idx, options, env, self));
-  }
-
-  return defaultFenceRenderer(tokens, idx, options, env, self);
-
-};
-
-export function setup(helper) {
-  if (!helper.markdownIt) return;
-
-  helper.allowList(['div.embedded_workflow', 'div.embedded_tip']);
-
-  helper.registerPlugin((md) => {
-
-    defaultFenceRenderer = md.renderer.rules.fence || function(tokens, idx, options, env, self) {
-				return self.renderToken(tokens, idx, options, env, self);
-    };
-
-    md.block.ruler.after("code", "json", blockJSON);
-    md.renderer.rules.fence = fenceRenderer;
-  });
-
-}
-
-*/
-
